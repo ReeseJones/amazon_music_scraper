@@ -1,0 +1,23 @@
+{
+  "name": "music-transfer-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.2",
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@lit-labs/virtualizer": "^2.0.14",
+    "@spotify/web-api-ts-sdk": "^1.2.0",
+    "@types/papaparse": "^5.3.15",
+    "brandi": "^5.0.0",
+    "lit": "^3.2.1",
+    "papaparse": "^5.4.1"
+  }
+}

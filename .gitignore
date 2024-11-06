@@ -128,3 +128,10 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# my compiled typescript
+binary/
+public/
+user_token.json
+private_config/
+spotify_example/
