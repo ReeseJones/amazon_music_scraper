@@ -6,8 +6,12 @@ import { styles } from "./music_transfer_styles";
 import { live } from "lit/directives/live.js";
 import {SongListItem} from "./song_list_item";
 import { searchForTrack } from "./search_for_track";
+import { container, identifiers } from "../app/service_container";
+import { delay } from "../time";
 
 export type SongListCSVEntry = [string, string, string, string];
+
+const spotify = container.get(identifiers.spotify);
 
 @customElement('music-transfer')
 export class MusicTransfer extends LitElement {
@@ -25,7 +29,8 @@ export class MusicTransfer extends LitElement {
     private uploading = false;
 
     private async searchLoop(): Promise<void> {
-      if(!this.searching) {
+      if(!this.searching || this.searchIndex >= this.uploadedSongList.length) {
+        this.searching = false;
         return;
       }
 
@@ -37,15 +42,30 @@ export class MusicTransfer extends LitElement {
     }
 
     private async uploadLoop(): Promise<void> {
-      if(!this.searching) {
+      if(!this.uploading || this.searchIndex >= this.uploadedSongList.length) {
+        this.uploading = false;
         return;
       }
+ 
+      let currentSearchIndex = this.searchIndex;
+      const songsToSave: SongListItem[] = [];
+      for(let iterations = 0; iterations < 50 && currentSearchIndex < this.uploadedSongList.length; iterations +=1, currentSearchIndex += 1) {
+        const songItem = this.uploadedSongList[currentSearchIndex];
+        if(songItem.shouldUpload === "yes" && songItem.savedToSpotify !== "yes" && songItem.spotifySongId) {
+          songsToSave.push(songItem);
+        }
+      }
 
-      const currentSearchIndex = this.searchIndex;
-      const songListItem = this.uploadedSongList[currentSearchIndex];
-      //await searchForTrack(songListItem);
-      //TODO: Upload batch of 50 songs.
-      this.searchIndex += 1;
+      this.searchIndex = currentSearchIndex;
+      if(songsToSave.length > 0) {
+        await spotify.currentUser.tracks.saveTracks({ids: songsToSave.map( s => s.spotifySongId )} as any);
+        for(const songItem of songsToSave) {
+          songItem.shouldUpload = "no";
+          songItem.savedToSpotify = "yes";
+        }
+        await delay(1000);
+      }
+
       return this.uploadLoop();
     }
 
@@ -116,11 +136,10 @@ export class MusicTransfer extends LitElement {
 
   private onSaveSongsPressed() {
     if(!this.uploading) {
-      this.searchIndex = Math.min(this.uploadedSongList.length, this.searchIndex);
-      this.searchIndex = Math.max(0, this.searchIndex);
+      this.searchIndex = 0;
       this.uploading = true;
 
-      this.searchLoop();
+      this.uploadLoop();
     }
   }
 
@@ -177,7 +196,7 @@ export class MusicTransfer extends LitElement {
       <input id="stopUploadSongs" type="button" name="stopUploadSongs" value="Stop saving Songs" @click="${this.onStopUploadingSongsPressed}" />
     </li>`;
     const searchButtonToUse = this.searching ? stopSearchButton : startSearchButton;
-    const uploadButtonToUse = this.uploading ? uploadSongsButton : stopUploadButton;
+    const uploadButtonToUse = this.uploading ? stopUploadButton : uploadSongsButton;
     return html`
       ${this.isReadyForSearch() ? searchButtonToUse : null}
       ${this.isReadyForUpload() ? uploadButtonToUse : null}
